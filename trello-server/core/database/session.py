@@ -1,7 +1,6 @@
 from contextvars import ContextVar, Token
 from typing import Union
 
-from core.config import config
 from sqlalchemy.ext.asyncio import (
   AsyncSession,
   async_scoped_session,
@@ -9,6 +8,13 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.sql.expression import Delete, Insert, Update
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
+from core.config import config
+from core.logger import setup_logger
+
+logger = setup_logger("database")
 
 session_context: ContextVar[str] = ContextVar("session_context")
 
@@ -21,10 +27,24 @@ def set_session_context(session_id: str) -> Token:
 def reset_session_context(context: Token) -> None:
    session_context.reset(context)
 
-engines = {
-   "writer": create_async_engine(config.POSTGRES_URL, pool_recycle=3600),
-   "reader": create_async_engine(config.POSTGRES_URL, pool_recycle=3600),
-}
+if config.SHOW_SQL_ALCHEMY_QUERIES:
+  @event.listens_for(Engine, "before_cursor_execute")
+  def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+     logger.debug(f"SQL Query: {statement}")
+     logger.debug(f"Parameters: ${parameters}")
+
+logger.info("Initializing database engines...")
+logger.info(f"Database URL: {config.POSTGRES_URL.split('@')[1] if '@' in str(config.POSTGRES_URL) else 'hidden'}")
+
+try:
+  engines = {
+    "writer": create_async_engine(config.POSTGRES_URL, pool_recycle=3600),
+    "reader": create_async_engine(config.POSTGRES_URL, pool_recycle=3600),
+  }
+  logger.info("Database engines created successfully")
+except Exception as e:
+  logger.error(f"Failed to create database engines: {str(e)}")
+  raise
 
 class RoutingSession(Session):
    def get_bind(self, mapper = None, *, clause = None, bind = None, _sa_skip_events = None, _sa_skip_for_implicit_returning = False, **kw):
