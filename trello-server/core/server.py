@@ -1,10 +1,13 @@
 from fastapi import Depends, FastAPI, Request
-from core.config import config
 from api import router
+
+from core.config import config
+from core.logger import setup_logger
+
+logger = setup_logger("server")
 
 def init_routers(app_: FastAPI) -> None:
   app_.include_router(router)
-
 
 def create_app() -> FastAPI:
   app_ = FastAPI(
@@ -14,6 +17,8 @@ def create_app() -> FastAPI:
     docs_url=None if config.ENVIRONMENT == "production" else "/docs"
   )
   init_routers(app_=app_)
+
+  logger.info("FastAPI application created")
 
   return app_
 

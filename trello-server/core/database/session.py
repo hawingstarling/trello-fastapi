@@ -1,0 +1,76 @@
+from contextvars import ContextVar, Token
+from typing import Union
+
+from sqlalchemy.ext.asyncio import (
+  AsyncSession,
+  async_scoped_session,
+   create_async_engine
+)
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.sql.expression import Delete, Insert, Update
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
+from core.config import config
+from core.logger import setup_logger
+
+logger = setup_logger("database")
+
+session_context: ContextVar[str] = ContextVar("session_context")
+
+def get_session_context() -> str:
+   return session_context.get()
+
+def set_session_context(session_id: str) -> Token:
+   return session_context.set(session_id)
+
+def reset_session_context(context: Token) -> None:
+   session_context.reset(context)
+
+if config.SHOW_SQL_ALCHEMY_QUERIES:
+  @event.listens_for(Engine, "before_cursor_execute")
+  def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+     logger.debug(f"SQL Query: {statement}")
+     logger.debug(f"Parameters: ${parameters}")
+
+logger.info("Initializing database engines...")
+logger.info(f"Database URL: {config.POSTGRES_URL.split('@')[1] if '@' in str(config.POSTGRES_URL) else 'hidden'}")
+
+try:
+  engines = {
+    "writer": create_async_engine(config.POSTGRES_URL, pool_recycle=3600),
+    "reader": create_async_engine(config.POSTGRES_URL, pool_recycle=3600),
+  }
+  logger.info("Database engines created successfully")
+except Exception as e:
+  logger.error(f"Failed to create database engines: {str(e)}")
+  raise
+
+class RoutingSession(Session):
+   def get_bind(self, mapper = None, *, clause = None, bind = None, _sa_skip_events = None, _sa_skip_for_implicit_returning = False, **kw):
+      if self._flushing or isinstance(clause, (Update, Delete, Insert)):
+         return engines["writer"].sync_engine
+      return engines["reader"].sync_engine
+
+async_session_factory = sessionmaker(
+   class_=AsyncSession,
+   sync_session_class=RoutingSession,
+   expire_on_commit=False,
+)
+
+session: Union[AsyncSession. async_scoped_session] = async_scoped_session(
+   session_factory=async_session_factory,
+   scopefunc=get_session_context
+)
+
+async def get_session():
+  """
+  Get the database session.
+  This can be used for dependency injection.
+
+  :return: The database session.
+  """
+  try:
+      yield session
+  finally:
+      await session.close()
