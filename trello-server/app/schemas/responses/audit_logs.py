@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import List
 
-from app.schemas.model import CustomModel
+from core.schemas import CustomModel
 from app.schemas.requests.audit_logs import AuditLogBase
 
 class AuditLogResponse(AuditLogBase):

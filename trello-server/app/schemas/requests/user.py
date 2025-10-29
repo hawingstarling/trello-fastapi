@@ -2,7 +2,7 @@ from uuid import UUID
 from typing import Optional
 from pydantic import EmailStr
 
-from app.schemas.model import CustomModel
+from core.schemas import CustomModel
 
 class UserPublicData(CustomModel):
   id: UUID

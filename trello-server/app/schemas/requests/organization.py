@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import EmailStr
 from app.schemas.responses.organization import OrganizationResponse
 
-from app.schemas.model import CustomModel
+from core.schemas import CustomModel
 
 class OrganizationLimitBase(CustomModel):
   count: int = 0

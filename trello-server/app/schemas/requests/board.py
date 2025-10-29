@@ -2,7 +2,7 @@ from typing import Optional, List
 from uuid import UUID
 from pydantic import field_validator
 
-from app.schemas.model import CustomModel
+from core.schemas import CustomModel
 
 class CardBase(CustomModel):
   title: str

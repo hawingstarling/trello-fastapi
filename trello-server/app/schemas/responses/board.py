@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from app.schemas.requests.board import BoardBase, CardBase, ListBase
-from app.schemas.model import CustomModel
+from core.schemas import CustomModel
 
 class CardResponse(CardBase):
   id: UUID

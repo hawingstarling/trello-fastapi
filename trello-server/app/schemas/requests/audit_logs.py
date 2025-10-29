@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from app.schemas.model import CustomModel
+from core.schemas import CustomModel
 from app.enums.audit_logs import Action, EntityType
 
 class AuditLogBase(CustomModel):
