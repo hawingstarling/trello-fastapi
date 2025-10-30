@@ -44,7 +44,7 @@ class List(Base):
   cards = relationship("Card", back_populates="list", cascade="all, delete-orphan")
 
   __table_args__ = (
-    UniqueConstraint("board_id", "order", name="unique_list_order_in_board")
+    UniqueConstraint("board_id", "order", name="unique_list_order_in_board"),
   )
 
 class Card(Base):
@@ -60,7 +60,7 @@ class Card(Base):
   edit_lock = relationship("CardEditLock", back_populates="card", uselist=False)
 
   __table_args__ = (
-    UniqueConstraint("list_id", "order", name="unique_card_order_in_list")
+    UniqueConstraint("list_id", "order", name="unique_card_order_in_list"),
   )
 
 class CardEditLock(Base):
